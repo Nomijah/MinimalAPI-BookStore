@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
-using Labb1.DTOs;
 using Labb1.Models;
+using Labb1.Models.DTOs;
 
 namespace Labb1
 {

@@ -14,7 +14,6 @@ namespace Labb1.Services
             _context = context;
             _mapper = mapper;
         }
-
         public async Task<IEnumerable<Book>> GetAll()
         {
             return await _context.Books.ToListAsync();
@@ -31,7 +30,6 @@ namespace Labb1.Services
         }
         public async Task<Book> Update(Book entity)
         {
-            
             var bookToUpdate = await _context.Books.FindAsync(entity.Id);
             _mapper.Map<Book, Book>(entity, bookToUpdate);
             await _context.SaveChangesAsync();
