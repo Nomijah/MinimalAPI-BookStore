@@ -1,11 +1,14 @@
 using AutoMapper;
+using FluentValidation;
 using Labb1;
 using Labb1.Data;
 using Labb1.Models;
 using Labb1.Models.DTOs;
+using Labb1.Models.Validations;
 using Labb1.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using System.Reflection.Metadata.Ecma335;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,6 +21,7 @@ builder.Services.AddScoped<IRepository<Book>, BookRepository>();
 builder.Services.AddDbContext<BookDbContext>(options =>
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddAutoMapper(typeof(MapperConfig));
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 var app = builder.Build();
 
@@ -52,13 +56,21 @@ app.MapGet("/books/{id:int}", async (IRepository<Book> bookRepo, int id) =>
     return Results.Ok(response);
 }).WithName("GetBook").Produces(200);
 
-app.MapPost("/books", async (
+app.MapPost("/books", async(
+    IValidator<BookCreateDTO> _validator,
     IMapper _mapper,
     IRepository<Book> bookRepo, 
     BookCreateDTO book_C_DTO) =>
 {
     APIResponse response = new() 
     { IsSuccess = false, StatusCode = System.Net.HttpStatusCode.BadRequest };
+
+    _validator = new BookPostValidation();
+    var validationResult = await _validator.ValidateAsync(book_C_DTO);
+    if (!validationResult.IsValid)
+    {
+        return Results.BadRequest(response);
+    }
 
     var bookList = await bookRepo.GetAll();
     bool alreadyExists = false;
@@ -85,6 +97,7 @@ app.MapPost("/books", async (
 }).WithName("AddBook").Produces(201).Produces(400);
 
 app.MapPut("/books", async (
+    IValidator<Book> _validator,
     IMapper _mapper, 
     IRepository<Book> bookRepo, 
     Book book) =>
@@ -92,11 +105,17 @@ app.MapPut("/books", async (
     APIResponse response = new() 
     { IsSuccess = false, StatusCode = System.Net.HttpStatusCode.BadRequest };
 
-    if (await bookRepo.GetById(book.Id) == null)
+    _validator = new BookUpdateValidation();
+    var validationResult = await _validator.ValidateAsync(book);
+    if (!validationResult.IsValid)
     {
-        response.ErrorMessages.Add($"Book with ID {book.Id} not found");
-        response.StatusCode = System.Net.HttpStatusCode.NotFound;
-        return Results.NotFound(response);
+        if (await bookRepo.GetById(book.Id) == null)
+        {
+            response.ErrorMessages.Add($"Book with ID {book.Id} not found");
+            response.StatusCode = System.Net.HttpStatusCode.NotFound;
+            return Results.NotFound(response);
+        }
+        return Results.BadRequest(response);
     }
 
     await bookRepo.Update(book);
