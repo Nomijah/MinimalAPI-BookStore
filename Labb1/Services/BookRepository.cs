@@ -2,6 +2,7 @@
 using Labb1.Data;
 using Labb1.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 namespace Labb1.Services
 {
@@ -41,6 +42,22 @@ namespace Labb1.Services
             _context.Books.Remove(bookToDelete);
             await _context.SaveChangesAsync();
             return bookToDelete;
+        }
+
+        public async Task<IEnumerable<Book>> GetByTitle(string title)
+        {
+            return await _context.Books
+                .Where(b => b.Title.ToLower()
+                .Contains(title.ToLower()))
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<Book>> GetByAuthor(string author)
+        {
+            return await _context.Books
+                .Where(b => b.Author.ToLower()
+                .Contains(author.ToLower()))
+                .ToListAsync();
         }
     }
 }

@@ -47,14 +47,59 @@ app.MapGet("/books", async (IRepository<Book> bookRepo) =>
 
 app.MapGet("/books/{id:int}", async (IRepository<Book> bookRepo, int id) =>
 {
-    APIResponse response = new APIResponse();
+    APIResponse response = new APIResponse() 
+    { IsSuccess = false, StatusCode = System.Net.HttpStatusCode.BadRequest };
 
     response.Result = await bookRepo.GetById(id);
+    if (response.Result == null)
+    {
+        response.ErrorMessages.Add($"Book with ID {id} not found");
+        response.StatusCode = System.Net.HttpStatusCode.NotFound;
+        return Results.NotFound(response);
+    }
     response.IsSuccess = true;
     response.StatusCode = System.Net.HttpStatusCode.OK;
 
     return Results.Ok(response);
-}).WithName("GetBook").Produces(200);
+}).WithName("GetBook").Produces(200).Produces(404);
+
+app.MapGet("/books/author/{author}", 
+    async (IRepository<Book> bookRepo, string author) =>
+{
+    APIResponse response = new APIResponse()
+    { IsSuccess = false, StatusCode = System.Net.HttpStatusCode.BadRequest };
+
+    response.Result = await bookRepo.GetByAuthor(author);
+    if (response.Result == null)
+    {
+        response.ErrorMessages.Add($"Book with author {author} not found");
+        response.StatusCode = System.Net.HttpStatusCode.NotFound;
+        return Results.NotFound(response);
+    }
+    response.IsSuccess = true;
+    response.StatusCode = System.Net.HttpStatusCode.OK;
+
+    return Results.Ok(response);
+}).WithName("GetBooksByAuthor").Produces(200).Produces(404);
+
+app.MapGet("/books/title/{title}",
+    async (IRepository<Book> bookRepo, string title) =>
+    {
+        APIResponse response = new APIResponse()
+        { IsSuccess = false, StatusCode = System.Net.HttpStatusCode.BadRequest };
+
+        response.Result = await bookRepo.GetByTitle(title);
+        if (response.Result == null)
+        {
+            response.ErrorMessages.Add($"Book with title {title} not found");
+            response.StatusCode = System.Net.HttpStatusCode.NotFound;
+            return Results.NotFound(response);
+        }
+        response.IsSuccess = true;
+        response.StatusCode = System.Net.HttpStatusCode.OK;
+
+        return Results.Ok(response);
+    }).WithName("GetBooksByTitle").Produces(200).Produces(404);
 
 app.MapPost("/books", async(
     IValidator<BookCreateDTO> _validator,
